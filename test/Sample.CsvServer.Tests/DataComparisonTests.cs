@@ -1,13 +1,13 @@
+using System.Data;
 using BabyKusto.Core;
+using BabyKusto.SampleCsvServer;
 using FluentAssertions;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
-using Microsoft.Extensions.DependencyInjection;
-using System.Data;
 using Xunit;
 
-namespace BabyKusto.SampleCsvServer.Tests;
+namespace Sample.CsvServer.Tests;
 
 /// <summary>
 /// Tests that validate data integrity by comparing Kusto query results with the original CSV data.
@@ -117,10 +117,10 @@ public class DataComparisonTests : CsvServerTestBase
     private List<UserData> ReadUsersFromCsv(ITableChunk csvData)
     {
         var users = new List<UserData>();
-        var nameCol = (Column<string>)csvData.Columns.First(c => c.Name == "name");
-        var ageCol = (Column<long?>)csvData.Columns.First(c => c.Name == "age");
-        var emailCol = (Column<string>)csvData.Columns.First(c => c.Name == "email");
-        var isActiveCol = (Column<bool?>)csvData.Columns.First(c => c.Name == "is_active");
+        var nameCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "name");
+        var ageCol = (Column<long?>)csvData.Columns.First(c => c.Type.Name == "age");
+        var emailCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "email");
+        var isActiveCol = (Column<bool?>)csvData.Columns.First(c => c.Type.Name == "is_active");
         
         // Create user objects from CSV columns
         for (int i = 0; i < csvData.RowCount; i++)
@@ -163,10 +163,10 @@ public class DataComparisonTests : CsvServerTestBase
     
     private EventData FindHighSeverityEventInCsv(ITableChunk csvData)
     {
-        var idCol = (Column<long?>)csvData.Columns.First(c => c.Name == "id");
-        var typeCol = (Column<string>)csvData.Columns.First(c => c.Name == "type");
-        var sourceCol = (Column<string>)csvData.Columns.First(c => c.Name == "source");
-        var severityCol = (Column<long?>)csvData.Columns.First(c => c.Name == "severity");
+        var idCol = (Column<long?>)csvData.Columns.First(c => c.Type.Name == "id");
+        var typeCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "type");
+        var sourceCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "source");
+        var severityCol = (Column<long?>)csvData.Columns.First(c => c.Type.Name == "severity");
         
         EventData highSeverityEvent = null;
         

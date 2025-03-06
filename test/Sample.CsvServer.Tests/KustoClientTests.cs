@@ -1,14 +1,10 @@
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using BabyKusto.Server.Service;
 using FluentAssertions;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
 using Xunit;
-using System.Data;
 
-namespace BabyKusto.SampleCsvServer.Tests;
+namespace Sample.CsvServer.Tests;
 
 public class KustoClientTests : CsvServerTestBase
 {

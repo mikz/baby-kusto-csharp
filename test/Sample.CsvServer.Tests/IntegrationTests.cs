@@ -1,12 +1,13 @@
+using BabyKusto.SampleCsvServer;
+using BabyKusto.Server.Service;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using BabyKusto.Server.Service;
-using FluentAssertions;
 using Xunit;
 
-namespace BabyKusto.SampleCsvServer.Tests;
+namespace Sample.CsvServer.Tests;
 
 public class CsvServerTestBase : IDisposable
 {
@@ -20,7 +21,7 @@ public class CsvServerTestBase : IDisposable
             {
                 builder.ConfigureAppConfiguration((context, config) =>
                 {
-                    config.AddJsonFile("appsettings.Testing.json", optional: false);
+                    config.AddJsonFile(Path.GetFullPath("../../../appsettings.Testing.json"), optional: false);
                     
                     // Mock CLI args for backward compatibility
                     var args = new[] { "--csv", "../../../samples/Sample.CsvServer/example/*.csv" };

@@ -1,14 +1,13 @@
+using System.Net;
+using System.Net.Http.Json;
 using FluentAssertions;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
-using System.Data;
-using System.Net;
-using System.Net.Http.Json;
 using Xunit;
 
-namespace BabyKusto.SampleCsvServer.Tests;
+namespace Sample.CsvServer.Tests;
 
 /// <summary>
 /// Tests that validate error handling in the CSV Server implementation.
