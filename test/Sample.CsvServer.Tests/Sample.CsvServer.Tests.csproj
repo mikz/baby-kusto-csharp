@@ -9,14 +9,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
     <PackageReference Include="xunit" Version="2.7.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\samples\Sample.CsvServer\Sample.CsvServer.csproj" />
-    <ProjectReference Include="..\..\src\BabyKusto.Core\BabyKusto.Core.csproj" />
+    <ProjectReference Include="../../samples/Sample.CsvServer/Sample.CsvServer.csproj" />
+    <ProjectReference Include="../../src/BabyKusto.Core/BabyKusto.Core.csproj" />
+    <ProjectReference Include="../../src/BabyKusto.Server/BabyKusto.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.Testing.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

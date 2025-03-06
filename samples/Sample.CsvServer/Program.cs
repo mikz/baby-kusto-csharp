@@ -2,27 +2,51 @@ using BabyKusto.Core;
 using BabyKusto.Server;
 using BabyKusto.Server.Service;
 using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.Options;
 
 namespace BabyKusto.SampleCsvServer;
+
+public class CsvServerOptions
+{
+    public string CsvGlobPattern { get; set; } = string.Empty;
+}
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        var csvFiles = GetCsvFiles(args);
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Add configuration support
+        builder.Configuration.AddCommandLine(args, new Dictionary<string, string>
+        {
+            { "--csv", "CsvServer:CsvGlobPattern" }
+        });
+        
+        builder.Services.AddControllers();
+        builder.Services.Configure<CsvServerOptions>(
+            builder.Configuration.GetSection("CsvServer"));
+
+        // Initialize services
+        var app = builder.Build();
+        var options = app.Services.GetRequiredService<IOptions<CsvServerOptions>>();
+
+        // Get CSV pattern from configuration
+        if (string.IsNullOrEmpty(options.Value.CsvGlobPattern))
+        {
+            throw new ArgumentException("Missing CSV pattern. Use --csv argument or configuration.");
+        }
+
+        var csvFiles = GetCsvFiles(options.Value.CsvGlobPattern);
         if (csvFiles.Count == 0)
         {
-            Console.Error.WriteLine("No CSV files found. Use --csv <glob_pattern> to specify CSV files.");
+            Console.Error.WriteLine("No CSV files found.");
             return;
         }
 
-        var builder = WebApplication.CreateBuilder(args);
-
-        builder.Services.AddControllers();
+        // Add services after configuration is validated
         builder.Services.AddSingleton<ITablesProvider>(_ => new CsvTablesProvider(csvFiles));
         builder.Services.AddBabyKustoServer();
-
-        var app = builder.Build();
 
         app.UseHttpsRedirection();
         app.UseRouting();
@@ -31,25 +55,16 @@ public class Program
         app.Run();
     }
 
-    private static List<string> GetCsvFiles(string[] args)
+    private static List<string> GetCsvFiles(string pattern)
     {
         var csvFiles = new List<string>();
         var matcher = new Matcher();
 
-        for (var i = 0; i < args.Length; i++)
-        {
-            if (args[i] == "--csv" && i + 1 < args.Length)
-            {
-                var pattern = args[i + 1];
-                var directory = Path.GetDirectoryName(pattern) ?? ".";
-                matcher.AddInclude(Path.GetFileName(pattern));
-                
-                var matches = matcher.GetResultsInFullPath(directory);
-                csvFiles.AddRange(matches);
-                
-                i++; // Skip the pattern argument
-            }
-        }
+        var directory = Path.GetDirectoryName(pattern) ?? ".";
+        matcher.AddInclude(Path.GetFileName(pattern));
+        
+        var matches = matcher.GetResultsInFullPath(directory);
+        csvFiles.AddRange(matches);
 
         return csvFiles;
     }
