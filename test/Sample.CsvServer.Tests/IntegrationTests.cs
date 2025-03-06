@@ -1,6 +1,9 @@
 using BabyKusto.SampleCsvServer;
 using BabyKusto.Server.Service;
 using FluentAssertions;
+using Kusto.Data;
+using Kusto.Data.Common;
+using Kusto.Data.Net.Client;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +14,9 @@ namespace Sample.CsvServer.Tests;
 
 public class CsvServerTestBase : IDisposable
 {
+    private const string ConnectionString = "Data Source=http://127.0.0.1:5220;";
+    internal readonly ICslQueryProvider _queryProvider;
+
     protected WebApplicationFactory<Program> Factory { get; }
     protected HttpClient Client { get; }
 
@@ -24,18 +30,22 @@ public class CsvServerTestBase : IDisposable
                     config.AddJsonFile(Path.GetFullPath("../../../appsettings.Testing.json"), optional: false);
                     
                     // Mock CLI args for backward compatibility
-                    var args = new[] { "--csv", "../../../samples/Sample.CsvServer/example/*.csv" };
+                    var args = new[] { "--csv", "example/*.csv" };
                     config.AddCommandLine(args);
                 });
             });
 
         Client = Factory.CreateClient();
+
+        var kcsb = new KustoConnectionStringBuilder(ConnectionString);
+        _queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
     }
 
     public void Dispose()
     {
         Client.Dispose();
         Factory.Dispose();
+        _queryProvider.Dispose();
     }
 }
 
@@ -49,7 +59,7 @@ public class IntegrationTests : CsvServerTestBase
         
         // Should load from appsettings.Testing.json
         options.Value.CsvGlobPattern.Should()
-            .Be("../../../samples/Sample.CsvServer/example/*.csv");
+            .Be("example/*.csv");
     }
 
     [Fact]

@@ -10,4 +10,9 @@
     <ProjectReference Include="..\..\src\BabyKusto.Server\BabyKusto.Server.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sample.CsvServer.Tests" />
+    <InternalsVisibleTo Include="Sample.CsvServer.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

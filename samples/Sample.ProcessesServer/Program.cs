@@ -18,6 +18,12 @@ namespace BabyKusto.SampleServer
             builder.Services.AddSingleton<ITablesProvider, SimpleTableProvider>();
             builder.Services.AddBabyKustoServer();
 
+            builder.Services.AddHttpLogging(logging =>
+            {
+                logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+            });
+
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -26,6 +32,7 @@ namespace BabyKusto.SampleServer
             app.UseRouting();
 
             app.MapControllers();
+            app.UseHttpLogging();
 
             app.Run();
         }

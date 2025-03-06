@@ -9,7 +9,7 @@ namespace Sample.CsvServer.Tests;
 public class KustoClientTests : CsvServerTestBase
 {
     private readonly ICslQueryProvider _queryProvider;
-    private const string ConnectionString = "Data Source=http://localhost:5220;";
+    private const string ConnectionString = "Data Source=http://127.0.0.1:5220;";
 
     public KustoClientTests() : base()
     {

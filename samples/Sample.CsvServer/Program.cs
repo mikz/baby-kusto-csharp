@@ -11,42 +11,33 @@ public class CsvServerOptions
     public string CsvGlobPattern { get; set; } = string.Empty;
 }
 
-public class Program
+public partial class Program
 {
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add configuration support
+        builder.WebHost.UseSetting(WebHostDefaults.HttpPortsKey, "5220");
+
         builder.Configuration.AddCommandLine(args, new Dictionary<string, string>
         {
             { "--csv", "CsvServer:CsvGlobPattern" }
         });
-        
-        builder.Services.AddControllers();
+
         builder.Services.Configure<CsvServerOptions>(
             builder.Configuration.GetSection("CsvServer"));
 
-        // Initialize services
-        var app = builder.Build();
-        var options = app.Services.GetRequiredService<IOptions<CsvServerOptions>>();
-
-        // Get CSV pattern from configuration
-        if (string.IsNullOrEmpty(options.Value.CsvGlobPattern))
-        {
-            throw new ArgumentException("Missing CSV pattern. Use --csv argument or configuration.");
-        }
-
-        var csvFiles = GetCsvFiles(options.Value.CsvGlobPattern);
-        if (csvFiles.Count == 0)
-        {
-            Console.Error.WriteLine("No CSV files found.");
-            return;
-        }
-
-        // Add services after configuration is validated
-        builder.Services.AddSingleton<ITablesProvider>(_ => new CsvTablesProvider(csvFiles));
+        builder.Services.AddSingleton<ITablesProvider>(sp =>
+            TablesProviderFactory.Create(
+                builder.Environment.ContentRootPath,
+                sp.GetRequiredService<IConfiguration>(),
+                sp.GetRequiredService<ILogger<Program>>()));
         builder.Services.AddBabyKustoServer();
+        builder.Services.AddControllers();
+
+        var app = builder.Build();
+
+        // app.Services.GetRequiredService<ITablesProvider>(); // validate csv server
 
         app.UseHttpsRedirection();
         app.UseRouting();
@@ -54,17 +45,43 @@ public class Program
 
         app.Run();
     }
+}
 
-    private static List<string> GetCsvFiles(string pattern)
+public abstract class TablesProviderFactory
+{
+    public static ITablesProvider Create(string root, IConfiguration configuration, ILogger logger)
+    {
+        var options = new CsvServerOptions();
+        configuration.GetSection("CsvServer").Bind(options);
+
+        if (string.IsNullOrEmpty(options.CsvGlobPattern))
+        {
+            throw new ArgumentException("Missing CSV pattern");
+        }
+
+        var csvFiles = GetCsvFiles(root, options.CsvGlobPattern, logger);
+        if (csvFiles.Count == 0)
+        {
+            throw new InvalidOperationException("No CSV files found");
+        }
+
+        return new CsvTablesProvider(csvFiles);
+    }
+
+    private static List<string> GetCsvFiles(string root, string pattern, ILogger logger)
     {
         var csvFiles = new List<string>();
         var matcher = new Matcher();
 
-        var directory = Path.GetDirectoryName(pattern) ?? ".";
-        matcher.AddInclude(Path.GetFileName(pattern));
-        
-        var matches = matcher.GetResultsInFullPath(directory);
-        csvFiles.AddRange(matches);
+        var cwd = Path.GetFullPath(Directory.GetCurrentDirectory());
+
+        matcher.AddInclude(pattern);
+
+        Console.WriteLine($"Searching for csv files in {cwd} with pattern {pattern}");
+        csvFiles.AddRange(matcher.GetResultsInFullPath(cwd));
+
+        Console.WriteLine($"Searching for csv files in {root} with pattern {pattern}");
+        csvFiles.AddRange(matcher.GetResultsInFullPath(root));
 
         return csvFiles;
     }

@@ -14,22 +14,11 @@ namespace Sample.CsvServer.Tests;
 /// </summary>
 public class DataComparisonTests : CsvServerTestBase
 {
-    private readonly ICslQueryProvider _queryProvider;
-    private readonly CsvTableSource _usersTable;
-    private readonly CsvTableSource _eventsTable;
-    private const string ConnectionString = "Data Source=http://localhost:5220;";
-    private const string CsvPath = "../../../samples/Sample.CsvServer/example";
+    private readonly CsvTableSource _usersTable = new(Path.Combine(CsvPath, "users.csv"));
+    private readonly CsvTableSource _eventsTable = new(Path.Combine(CsvPath, "events.csv"));
 
-    public DataComparisonTests() : base()
-    {
-        // Setup Kusto client
-        var kcsb = new KustoConnectionStringBuilder(ConnectionString);
-        _queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
-        
-        // Load CSV files directly for comparison
-        _usersTable = new CsvTableSource(Path.Combine(CsvPath, "users.csv"));
-        _eventsTable = new CsvTableSource(Path.Combine(CsvPath, "events.csv"));
-    }
+    private const string CsvPath = "../../../../../samples/Sample.CsvServer/example";
+
 
     [Fact]
     public void UserData_MatchesCsvSource()
@@ -43,9 +32,6 @@ public class DataComparisonTests : CsvServerTestBase
         // Compare row counts
         var rowCount = GetRowCount(reader);
         rowCount.Should().Be(csvData.RowCount);
-        
-        // Reset reader for data comparison
-        reader.Dispose();
         
         // Execute query again to read data
         using var readerForData = _queryProvider.ExecuteQuery("users | order by name asc");
@@ -70,9 +56,6 @@ public class DataComparisonTests : CsvServerTestBase
         // Compare row counts
         var rowCount = GetRowCount(reader);
         rowCount.Should().Be(csvData.RowCount);
-        
-        // Reset reader for data comparison
-        reader.Dispose();
         
         // Execute query again to read data
         using var readerForData = _queryProvider.ExecuteQuery("events | order by id asc");
