@@ -7,15 +7,15 @@ all: build
 
 # Build the application
 build:
-	dotnet build ../../BabyKusto.sln
+	dotnet build .
 
 # Run tests
 test:
-	dotnet test ../../BabyKusto.sln --filter "FullyQualifiedName~Sample.CsvServer.Tests"
+	dotnet test ../..//test/Sample.CsvServer.Tests
 
 # Build Docker image
 docker:
-	docker build -f Dockerfile -t babykusto-csv-server ../../
+	docker build -f Dockerfile -t babykusto-csv-server ../..
 
 # Run Docker container
 # Usage: make run CSV_DIR=/path/to/csv/files
@@ -24,7 +24,7 @@ run:
 		echo "Error: CSV_DIR is not set. Usage: make run CSV_DIR=/path/to/csv/files"; \
 		exit 1; \
 	fi
-	docker run -p 5000:80 -v $(CSV_DIR):/data babykusto-csv-server
+	docker run -p 5220:5220 -v $(CSV_DIR):/data babykusto-csv-server
 
 # Clean build artifacts
 clean:

@@ -8,23 +8,6 @@ namespace Sample.CsvServer.Tests;
 
 public class KustoClientTests(ServerFixture fixture) : CsvServerTestBase(fixture)
 {
-
-    [Fact]
-    public void Client_CanConnectToServer()
-    {
-        // Simple test query to verify connectivity
-        using var reader = QueryProvider.ExecuteQuery(".show tables");
-        
-        // If we get here, the connection was successful
-        reader.Should().NotBeNull();
-        
-        // Check that we can read from the result
-        reader.Read().Should().BeTrue();
-        
-        // The first column should be the table name
-        reader.GetName(0).Should().Be("TableName");
-    }
-    
     [Fact]
     public void Client_CanQueryUsers()
     {

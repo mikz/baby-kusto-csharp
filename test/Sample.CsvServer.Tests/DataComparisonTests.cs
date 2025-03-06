@@ -1,6 +1,7 @@
 using System.Data;
 using BabyKusto.Core;
 using FluentAssertions;
+using Kusto.Language.Utils;
 using Xunit;
 
 namespace Sample.CsvServer.Tests;
@@ -96,19 +97,19 @@ public class DataComparisonTests(ServerFixture fixture) : CsvServerTestBase(fixt
     private List<UserData> ReadUsersFromCsv(ITableChunk csvData)
     {
         var users = new List<UserData>();
-        var nameCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "name");
-        var ageCol = (Column<long?>)csvData.Columns.First(c => c.Type.Name == "age");
-        var emailCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "email");
-        var isActiveCol = (Column<bool?>)csvData.Columns.First(c => c.Type.Name == "is_active");
+        var nameCol = csvData.FindColumn<string>("name");
+        var ageCol = csvData.FindColumn<long?>("age");
+        var emailCol = csvData.FindColumn<string>("email");
+        var isActiveCol = csvData.FindColumn<bool?>("is_active");
         
         // Create user objects from CSV columns
         for (int i = 0; i < csvData.RowCount; i++)
         {
             users.Add(new UserData
             {
-                Name = nameCol[i],
+                Name = nameCol[i]!,
                 Age = ageCol[i] ?? 0,
-                Email = emailCol[i],
+                Email = emailCol[i]!,
                 IsActive = isActiveCol[i] ?? false
             });
         }
@@ -139,16 +140,16 @@ public class DataComparisonTests(ServerFixture fixture) : CsvServerTestBase(fixt
         
         return highSeverityEvent;
     }
-    
+
     private EventData FindHighSeverityEventInCsv(ITableChunk csvData)
     {
-        var idCol = (Column<long?>)csvData.Columns.First(c => c.Type.Name == "id");
-        var typeCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "type");
-        var sourceCol = (Column<string>)csvData.Columns.First(c => c.Type.Name == "source");
-        var severityCol = (Column<long?>)csvData.Columns.First(c => c.Type.Name == "severity");
-        
+        var idCol = csvData.FindColumn<long?>("id");
+        var typeCol = csvData.FindColumn<string>("type");
+        var sourceCol = csvData.FindColumn<string>("source");
+        var severityCol = csvData.FindColumn<long?>("severity");
+
         EventData highSeverityEvent = null;
-        
+
         for (int i = 0; i < csvData.RowCount; i++)
         {
             var severity = severityCol[i] ?? 0;
@@ -164,7 +165,7 @@ public class DataComparisonTests(ServerFixture fixture) : CsvServerTestBase(fixt
                 break;
             }
         }
-        
+
         return highSeverityEvent;
     }
     #endregion
@@ -186,4 +187,17 @@ public class DataComparisonTests(ServerFixture fixture) : CsvServerTestBase(fixt
         public long Severity { get; set; }
     }
     #endregion
+}
+
+public static class TableExtensions
+{
+    public static Column<T> FindColumn<T>(this ITableChunk source, string columnName)
+    {
+        source.Table.Type.GetColumn(columnName);
+
+        var colIdx = source.Table.Type.Columns.FirstIndex(c => c.Name == columnName);
+        var col = source.Columns[colIdx];
+
+        return (Column<T>)col;
+    }
 }

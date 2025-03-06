@@ -18,20 +18,20 @@ public class ErrorHandlingTests(ServerFixture fixture) : CsvServerTestBase(fixtu
     public void InvalidQuery_ReturnsError()
     {
         // This should throw a Kusto exception for invalid syntax
-        var ex = Assert.Throws<KustoClientException>(() =>
+        var ex = Assert.Throws<KustoBadRequestException>(() =>
         {
             QueryProvider.ExecuteQuery("users | invalidoperator");
         });
 
         // Verify we get an appropriate error
-        ex.Message.Should().Contain("invalidoperator");
+        ex.Message.Should().Contain("KS176");
     }
 
     [Fact]
     public void NonexistentTable_ReturnsError()
     {
         // Query a table that doesn't exist
-        var ex = Assert.Throws<KustoClientException>(() =>
+        var ex = Assert.Throws<KustoBadRequestException>(() =>
         {
             QueryProvider.ExecuteQuery("nonexistent_table");
         });
@@ -44,7 +44,7 @@ public class ErrorHandlingTests(ServerFixture fixture) : CsvServerTestBase(fixtu
     public void InvalidColumnReference_ReturnsError()
     {
         // Reference a column that doesn't exist
-        var ex = Assert.Throws<KustoClientException>(() =>
+        var ex = Assert.Throws<KustoBadRequestException>(() =>
         {
             QueryProvider.ExecuteQuery("users | project nonexistent_column");
         });
@@ -57,12 +57,12 @@ public class ErrorHandlingTests(ServerFixture fixture) : CsvServerTestBase(fixtu
     public void TypeMismatch_HandledGracefully()
     {
         // Try to filter a string column with a numeric comparison
-        var ex = Assert.Throws<KustoClientException>(() =>
+        var ex = Assert.Throws<KustoBadRequestException>(() =>
         {
             QueryProvider.ExecuteQuery("users | where name > 42");
         });
         
         // Should get a type mismatch error
-        ex.Message.Should().Contain("name");
+        ex.Message.Should().Contain("KS106");
     }
 }

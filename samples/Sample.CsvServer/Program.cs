@@ -37,7 +37,9 @@ public partial class Program
                 sp.GetRequiredService<IConfiguration>(),
                 sp.GetRequiredService<ILogger<Program>>()));
         builder.Services.AddBabyKustoServer();
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            .AddApplicationPart(typeof(Program).Assembly) // Add the assembly with controllers
+            .AddControllersAsServices();
         builder.Services.AddHttpLogging(logging =>
         {
             logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
