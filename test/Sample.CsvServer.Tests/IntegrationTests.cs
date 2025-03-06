@@ -1,10 +1,10 @@
-using BabyKusto.SampleCsvServer;
 using BabyKusto.Server.Service;
 using FluentAssertions;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -12,50 +12,63 @@ using Xunit;
 
 namespace Sample.CsvServer.Tests;
 
-public class CsvServerTestBase : IDisposable
+public class CsvServerTestBase(ServerFixture fixture) : IClassFixture<ServerFixture>, IAsyncLifetime
 {
-    private const string ConnectionString = "Data Source=http://127.0.0.1:5220;";
-    internal readonly ICslQueryProvider _queryProvider;
+    internal ICslQueryProvider QueryProvider = null!;
 
-    protected WebApplicationFactory<Program> Factory { get; }
-    protected HttpClient Client { get; }
+    internal readonly ServerFixture Fixture = fixture;
 
-    public CsvServerTestBase()
+    public Task InitializeAsync()
     {
-        Factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureAppConfiguration((context, config) =>
-                {
-                    config.AddJsonFile(Path.GetFullPath("../../../appsettings.Testing.json"), optional: false);
-                    
-                    // Mock CLI args for backward compatibility
-                    var args = new[] { "--csv", "example/*.csv" };
-                    config.AddCommandLine(args);
-                });
-            });
-
-        Client = Factory.CreateClient();
-
-        var kcsb = new KustoConnectionStringBuilder(ConnectionString);
-        _queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
+        var kcsb = new KustoConnectionStringBuilder($"Data Source={Fixture.ServerUrl}");
+        QueryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
+        return Task.CompletedTask;
     }
 
-    public void Dispose()
+    public Task DisposeAsync()
     {
-        Client.Dispose();
-        Factory.Dispose();
-        _queryProvider.Dispose();
+        QueryProvider.Dispose();
+        return Task.CompletedTask;
     }
 }
 
-public class IntegrationTests : CsvServerTestBase
+public class ServerFixture : IAsyncLifetime
+{
+    internal WebApplication App;
+    private readonly WebApplicationBuilder _builder = WebApplication.CreateBuilder();
+
+    public ServerFixture()
+    {
+        _builder.WebHost.UseUrls("http://127.0.0.1:0"); // Auto-assign port
+        _builder.Environment.ContentRootPath =   Path.GetFullPath("../../../../../samples/Sample.CsvServer");
+
+        App = Program.BuildWebApplication(_builder);
+    }
+
+    public string? ServerUrl { get; private set; }
+
+    public async Task InitializeAsync()
+    {
+        Console.WriteLine("Initializing Server");
+        await App.StartAsync();
+
+        ServerUrl = App.Urls.First();
+    }
+
+    public async Task DisposeAsync()
+    {
+        Console.WriteLine("Disposing Server");
+        await App.DisposeAsync();
+    }
+}
+
+public class IntegrationTests(ServerFixture fixture) : CsvServerTestBase(fixture)
 {
     [Fact]
     public void Server_LoadsConfiguration()
     {
         // Get configured options
-        var options = Factory.Services.GetRequiredService<IOptions<CsvServerOptions>>();
+        var options = Fixture.App.Services.GetRequiredService<IOptions<CsvServerOptions>>();
         
         // Should load from appsettings.Testing.json
         options.Value.CsvGlobPattern.Should()
@@ -66,7 +79,7 @@ public class IntegrationTests : CsvServerTestBase
     public void Server_LoadsCsvFiles()
     {
         // Get table provider
-        var provider = Factory.Services.GetRequiredService<ITablesProvider>();
+        var provider = Fixture.App.Services.GetRequiredService<ITablesProvider>();
         var tables = provider.GetTables();
 
         // Should find both example files

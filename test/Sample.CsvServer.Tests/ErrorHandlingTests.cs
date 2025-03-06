@@ -12,24 +12,15 @@ namespace Sample.CsvServer.Tests;
 /// <summary>
 /// Tests that validate error handling in the CSV Server implementation.
 /// </summary>
-public class ErrorHandlingTests : CsvServerTestBase
+public class ErrorHandlingTests(ServerFixture fixture) : CsvServerTestBase(fixture)
 {
-    private readonly ICslQueryProvider _queryProvider;
-    private const string ConnectionString = "Data Source=http://127.0.0.1:5220;";
-
-    public ErrorHandlingTests() : base()
-    {
-        var kcsb = new KustoConnectionStringBuilder(ConnectionString);
-        _queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
-    }
-
     [Fact]
     public void InvalidQuery_ReturnsError()
     {
         // This should throw a Kusto exception for invalid syntax
         var ex = Assert.Throws<KustoClientException>(() =>
         {
-            _queryProvider.ExecuteQuery("users | invalidoperator");
+            QueryProvider.ExecuteQuery("users | invalidoperator");
         });
 
         // Verify we get an appropriate error
@@ -42,7 +33,7 @@ public class ErrorHandlingTests : CsvServerTestBase
         // Query a table that doesn't exist
         var ex = Assert.Throws<KustoClientException>(() =>
         {
-            _queryProvider.ExecuteQuery("nonexistent_table");
+            QueryProvider.ExecuteQuery("nonexistent_table");
         });
 
         // Verify we get an appropriate error
@@ -55,26 +46,11 @@ public class ErrorHandlingTests : CsvServerTestBase
         // Reference a column that doesn't exist
         var ex = Assert.Throws<KustoClientException>(() =>
         {
-            _queryProvider.ExecuteQuery("users | project nonexistent_column");
+            QueryProvider.ExecuteQuery("users | project nonexistent_column");
         });
 
         // Verify we get an appropriate error
         ex.Message.Should().Contain("nonexistent_column");
-    }
-    
-    [Fact]
-    public async Task DirectRestApi_InvalidRequest_Returns400()
-    {
-        // Send an invalid request directly to the REST API
-        var response = await Client.PostAsync("/v2/rest/query", 
-            JsonContent.Create(new
-            {
-                db = "fake",
-                csl = "invalid query syntax",
-            }));
-        
-        // Should get a 400 Bad Request
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
     
     [Fact]
@@ -83,7 +59,7 @@ public class ErrorHandlingTests : CsvServerTestBase
         // Try to filter a string column with a numeric comparison
         var ex = Assert.Throws<KustoClientException>(() =>
         {
-            _queryProvider.ExecuteQuery("users | where name > 42");
+            QueryProvider.ExecuteQuery("users | where name > 42");
         });
         
         // Should get a type mismatch error

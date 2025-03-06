@@ -6,23 +6,14 @@ using Xunit;
 
 namespace Sample.CsvServer.Tests;
 
-public class KustoClientTests : CsvServerTestBase
+public class KustoClientTests(ServerFixture fixture) : CsvServerTestBase(fixture)
 {
-    private readonly ICslQueryProvider _queryProvider;
-    private const string ConnectionString = "Data Source=http://127.0.0.1:5220;";
-
-    public KustoClientTests() : base()
-    {
-        // Configure Kusto client connection
-        var kcsb = new KustoConnectionStringBuilder(ConnectionString);
-        _queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
-    }
 
     [Fact]
     public void Client_CanConnectToServer()
     {
         // Simple test query to verify connectivity
-        using var reader = _queryProvider.ExecuteQuery(".show tables");
+        using var reader = QueryProvider.ExecuteQuery(".show tables");
         
         // If we get here, the connection was successful
         reader.Should().NotBeNull();
@@ -38,7 +29,7 @@ public class KustoClientTests : CsvServerTestBase
     public void Client_CanQueryUsers()
     {
         // Execute a query against the users table
-        using var reader = _queryProvider.ExecuteQuery("users | project name, age");
+        using var reader = QueryProvider.ExecuteQuery("users | project name, age");
         
         // Verify we can read data
         reader.Should().NotBeNull();
@@ -64,7 +55,7 @@ public class KustoClientTests : CsvServerTestBase
     public void Client_CanQueryWithFilter()
     {
         // Query with a filter
-        using var reader = _queryProvider.ExecuteQuery("users | where age > 25 | project name, age");
+        using var reader = QueryProvider.ExecuteQuery("users | where age > 25 | project name, age");
         
         // Read all users over 25
         var usersOver25 = new List<(string name, long age)>();
@@ -86,7 +77,7 @@ public class KustoClientTests : CsvServerTestBase
     public void Client_CanQueryEventsTable()
     {
         // Query the events table
-        using var reader = _queryProvider.ExecuteQuery("events | where severity > 2 | project id, type, severity");
+        using var reader = QueryProvider.ExecuteQuery("events | where severity > 2 | project id, type, severity");
         
         // There should be at least one high severity event (severity > 2)
         reader.Read().Should().BeTrue();
@@ -108,7 +99,7 @@ public class KustoClientTests : CsvServerTestBase
             | count
         ";
         
-        using var reader = _queryProvider.ExecuteQuery(query);
+        using var reader = QueryProvider.ExecuteQuery(query);
         
         // We should be able to execute a join query
         reader.Should().NotBeNull();

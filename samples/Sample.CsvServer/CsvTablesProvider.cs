@@ -1,7 +1,7 @@
 using BabyKusto.Core;
 using BabyKusto.Server.Service;
 
-namespace BabyKusto.SampleCsvServer;
+namespace Sample.CsvServer;
 
 public class CsvTablesProvider : ITablesProvider
 {

@@ -1,10 +1,6 @@
 using System.Data;
 using BabyKusto.Core;
-using BabyKusto.SampleCsvServer;
 using FluentAssertions;
-using Kusto.Data;
-using Kusto.Data.Common;
-using Kusto.Data.Net.Client;
 using Xunit;
 
 namespace Sample.CsvServer.Tests;
@@ -12,7 +8,7 @@ namespace Sample.CsvServer.Tests;
 /// <summary>
 /// Tests that validate data integrity by comparing Kusto query results with the original CSV data.
 /// </summary>
-public class DataComparisonTests : CsvServerTestBase
+public class DataComparisonTests(ServerFixture fixture) : CsvServerTestBase(fixture)
 {
     private readonly CsvTableSource _usersTable = new(Path.Combine(CsvPath, "users.csv"));
     private readonly CsvTableSource _eventsTable = new(Path.Combine(CsvPath, "events.csv"));
@@ -24,7 +20,7 @@ public class DataComparisonTests : CsvServerTestBase
     public void UserData_MatchesCsvSource()
     {
         // Get all data from users table via Kusto
-        using var reader = _queryProvider.ExecuteQuery("users");
+        using var reader = QueryProvider.ExecuteQuery("users");
         
         // Get data directly from CSV
         var csvData = _usersTable.GetData().First();
@@ -34,7 +30,7 @@ public class DataComparisonTests : CsvServerTestBase
         rowCount.Should().Be(csvData.RowCount);
         
         // Execute query again to read data
-        using var readerForData = _queryProvider.ExecuteQuery("users | order by name asc");
+        using var readerForData = QueryProvider.ExecuteQuery("users | order by name asc");
         
         // Read all data into in-memory structures for comparison
         var kustoUsers = ReadUsersFromReader(readerForData);
@@ -48,7 +44,7 @@ public class DataComparisonTests : CsvServerTestBase
     public void EventData_MatchesCsvSource()
     {
         // Get all data from events table via Kusto
-        using var reader = _queryProvider.ExecuteQuery("events");
+        using var reader = QueryProvider.ExecuteQuery("events");
         
         // Get data directly from CSV
         var csvData = _eventsTable.GetData().First();
@@ -58,7 +54,7 @@ public class DataComparisonTests : CsvServerTestBase
         rowCount.Should().Be(csvData.RowCount);
         
         // Execute query again to read data
-        using var readerForData = _queryProvider.ExecuteQuery("events | order by id asc");
+        using var readerForData = QueryProvider.ExecuteQuery("events | order by id asc");
         
         // Verify high severity event matches between sources
         var kustoHighSeverityEvent = ReadHighSeverityEvent(readerForData);

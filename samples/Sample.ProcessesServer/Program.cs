@@ -12,7 +12,13 @@ namespace BabyKusto.SampleServer
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            var app = BuildWebApplication(builder);
 
+            app.Run();
+        }
+
+        static WebApplication BuildWebApplication(WebApplicationBuilder builder)
+        {
             builder.Services.AddControllers();
 
             builder.Services.AddSingleton<ITablesProvider, SimpleTableProvider>();
@@ -26,15 +32,11 @@ namespace BabyKusto.SampleServer
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-
-            app.UseHttpsRedirection();
             app.UseRouting();
-
             app.MapControllers();
             app.UseHttpLogging();
 
-            app.Run();
+            return app;
         }
 
         private class SimpleTableProvider : ITablesProvider

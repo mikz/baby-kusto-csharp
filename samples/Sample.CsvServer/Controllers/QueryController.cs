@@ -2,21 +2,18 @@ using BabyKusto.Server.Contract;
 using BabyKusto.Server.Service;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BabyKusto.SampleServer.Controllers
+namespace Sample.CsvServer.Controllers
 {
     [ApiController]
-    public class QueryController : ControllerBase
+    public class QueryController(
+        QueryEndpointHelper queryEndpointHelper,
+        QueryV2EndpointHelper queryV2EndpointHelper,
+        ILogger<QueryController> logger)
+        : ControllerBase
     {
-        private readonly QueryEndpointHelper _queryEndpointHelper;
-        private readonly QueryV2EndpointHelper _queryV2EndpointHelper;
-        private readonly ILogger<QueryController> _logger;
-
-        public QueryController(QueryEndpointHelper queryEndpointHelper, QueryV2EndpointHelper queryV2EndpointHelper, ILogger<QueryController> logger)
-        {
-            _queryEndpointHelper = queryEndpointHelper ?? throw new ArgumentNullException(nameof(queryEndpointHelper));
-            _queryV2EndpointHelper = queryV2EndpointHelper ?? throw new ArgumentNullException(nameof(queryV2EndpointHelper));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly QueryEndpointHelper _queryEndpointHelper = queryEndpointHelper ?? throw new ArgumentNullException(nameof(queryEndpointHelper));
+        private readonly QueryV2EndpointHelper _queryV2EndpointHelper = queryV2EndpointHelper ?? throw new ArgumentNullException(nameof(queryV2EndpointHelper));
+        private readonly ILogger<QueryController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         [HttpPost]
         [Route("/v1/rest/query")]
@@ -24,23 +21,23 @@ namespace BabyKusto.SampleServer.Controllers
         {
             if (body == null)
             {
-                return this.BadRequest();
+                return BadRequest();
             }
 
             try
             {
                 var result = _queryEndpointHelper.Process(body);
-                return this.Ok(result);
+                return Ok(result);
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Error processing query api request.");
-                return this.BadRequest(ex.ToString());
+                return BadRequest(ex.ToString());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Unexpected error processing query api request, input: {body.Csl}.");
-                return this.BadRequest(ex.ToString());
+                return BadRequest(ex.ToString());
             }
         }
 

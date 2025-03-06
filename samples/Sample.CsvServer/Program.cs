@@ -1,10 +1,8 @@
-using BabyKusto.Core;
 using BabyKusto.Server;
 using BabyKusto.Server.Service;
 using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.Options;
 
-namespace BabyKusto.SampleCsvServer;
+namespace Sample.CsvServer;
 
 public class CsvServerOptions
 {
@@ -18,12 +16,18 @@ public partial class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.WebHost.UseSetting(WebHostDefaults.HttpPortsKey, "5220");
-
         builder.Configuration.AddCommandLine(args, new Dictionary<string, string>
         {
             { "--csv", "CsvServer:CsvGlobPattern" }
         });
 
+        var app = BuildWebApplication(builder);
+
+        app.Run();
+    }
+
+    internal static WebApplication BuildWebApplication(WebApplicationBuilder builder)
+    {
         builder.Services.Configure<CsvServerOptions>(
             builder.Configuration.GetSection("CsvServer"));
 
@@ -34,17 +38,22 @@ public partial class Program
                 sp.GetRequiredService<ILogger<Program>>()));
         builder.Services.AddBabyKustoServer();
         builder.Services.AddControllers();
+        builder.Services.AddHttpLogging(logging =>
+        {
+            logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+        });
 
         var app = builder.Build();
 
         // app.Services.GetRequiredService<ITablesProvider>(); // validate csv server
 
-        app.UseHttpsRedirection();
         app.UseRouting();
         app.MapControllers();
+        app.UseHttpLogging();
 
-        app.Run();
+        return app;
     }
+
 }
 
 public abstract class TablesProviderFactory
@@ -78,9 +87,11 @@ public abstract class TablesProviderFactory
         matcher.AddInclude(pattern);
 
         Console.WriteLine($"Searching for csv files in {cwd} with pattern {pattern}");
+        logger.LogInformation($"Searching for csv files in {cwd} with pattern {pattern}");
         csvFiles.AddRange(matcher.GetResultsInFullPath(cwd));
 
         Console.WriteLine($"Searching for csv files in {root} with pattern {pattern}");
+        logger.LogInformation($"Searching for csv files in {root} with pattern {pattern}");
         csvFiles.AddRange(matcher.GetResultsInFullPath(root));
 
         return csvFiles;

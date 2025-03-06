@@ -2,7 +2,7 @@ using BabyKusto.Core;
 using BabyKusto.Core.Util;
 using Kusto.Language.Symbols;
 
-namespace BabyKusto.SampleCsvServer;
+namespace Sample.CsvServer;
 
 /// <summary>
 /// Represents a CSV file as a table source for BabyKusto.

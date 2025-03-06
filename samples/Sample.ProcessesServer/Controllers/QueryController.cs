@@ -5,18 +5,15 @@ using Microsoft.AspNetCore.Mvc;
 namespace BabyKusto.SampleServer.Controllers
 {
     [ApiController]
-    public class QueryController : ControllerBase
+    public class QueryController(
+        QueryEndpointHelper queryEndpointHelper,
+        QueryV2EndpointHelper queryV2EndpointHelper,
+        ILogger<QueryController> logger)
+        : ControllerBase
     {
-        private readonly QueryEndpointHelper _queryEndpointHelper;
-        private readonly QueryV2EndpointHelper _queryV2EndpointHelper;
-        private readonly ILogger<QueryController> _logger;
-
-        public QueryController(QueryEndpointHelper queryEndpointHelper, QueryV2EndpointHelper queryV2EndpointHelper, ILogger<QueryController> logger)
-        {
-            _queryEndpointHelper = queryEndpointHelper ?? throw new ArgumentNullException(nameof(queryEndpointHelper));
-            _queryV2EndpointHelper = queryV2EndpointHelper ?? throw new ArgumentNullException(nameof(queryV2EndpointHelper));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly QueryEndpointHelper _queryEndpointHelper = queryEndpointHelper ?? throw new ArgumentNullException(nameof(queryEndpointHelper));
+        private readonly QueryV2EndpointHelper _queryV2EndpointHelper = queryV2EndpointHelper ?? throw new ArgumentNullException(nameof(queryV2EndpointHelper));
+        private readonly ILogger<QueryController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         [HttpPost]
         [Route("/v1/rest/query")]
