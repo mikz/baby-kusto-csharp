@@ -16,12 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\samples\Sample.CsvServer\Sample.CsvServer.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="TestData\*.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\..\src\BabyKusto.Core\BabyKusto.Core.csproj" />
   </ItemGroup>
 
 </Project>

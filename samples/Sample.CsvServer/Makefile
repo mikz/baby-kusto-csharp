@@ -7,11 +7,11 @@ all: build
 
 # Build the application
 build:
-	dotnet build Sample.CsvServer.csproj
+	dotnet build ../../BabyKusto.sln
 
-# Run tests (once test project is created)
+# Run tests
 test:
-	dotnet test ../test/Sample.CsvServer.Tests/Sample.CsvServer.Tests.csproj
+	dotnet test ../../BabyKusto.sln --filter "FullyQualifiedName~Sample.CsvServer.Tests"
 
 # Build Docker image
 docker:
@@ -28,5 +28,5 @@ run:
 
 # Clean build artifacts
 clean:
-	dotnet clean Sample.CsvServer.csproj
+	dotnet clean ../../BabyKusto.sln
 	rm -rf bin obj

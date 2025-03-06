@@ -1,6 +1,6 @@
-using System.Data;
 using BabyKusto.Core;
-using BabyKusto.Core.DataSource;
+using BabyKusto.Core.Util;
+using Kusto.Language.Symbols;
 
 namespace BabyKusto.SampleCsvServer;
 
@@ -12,14 +12,14 @@ namespace BabyKusto.SampleCsvServer;
 public class CsvTableSource : ITableSource
 {
     private readonly string _filePath;
-    private readonly string _tableName;
-    private readonly Column[] _columns;
-    private readonly List<object?[]> _rows;
+    private readonly (string name, ScalarSymbol type)[] _columnDefs;
+    private readonly List<string[]> _rows = new();
+
+    public TableSymbol Type { get; }
 
     public CsvTableSource(string filePath)
     {
         _filePath = filePath;
-        _tableName = Path.GetFileNameWithoutExtension(filePath);
         
         // Read and parse the CSV file
         using var reader = new StreamReader(filePath);
@@ -29,33 +29,63 @@ public class CsvTableSource : ITableSource
         if (string.IsNullOrEmpty(header))
             throw new InvalidDataException($"CSV file {filePath} is empty or has no header");
 
-        _columns = ParseHeader(header);
-        _rows = new List<object?[]>();
+        _columnDefs = ParseHeader(header);
+        Type = new TableSymbol(
+            Path.GetFileNameWithoutExtension(filePath),
+            _columnDefs.Select(c => new ColumnSymbol(c.name, c.type)).ToArray()
+        );
         
-        // Read data rows
+        // Read data rows without validation (validate in GetData())
         while (!reader.EndOfStream)
         {
             var line = reader.ReadLine();
             if (string.IsNullOrEmpty(line)) continue;
             
-            var values = ParseDataRow(line);
+            var values = line.Split(',')
+                .Select(v => v.Trim())
+                .Select(v => v.StartsWith("\"") && v.EndsWith("\"") ? v[1..^1] : v)
+                .ToArray();
+            
             _rows.Add(values);
         }
     }
 
-    public string Name => _tableName;
-
-    public IReadOnlyList<Column> Columns => _columns;
-
     public IEnumerable<ITableChunk> GetData()
     {
-        yield return new TableChunk(_columns, _rows);
+        var builders = new List<ColumnBuilder>();
+
+        // Create builders for each column
+        foreach (var (_, type) in _columnDefs)
+        {
+            builders.Add(CreateBuilder(type));
+        }
+
+        // Add data to builders
+        foreach (var row in _rows)
+        {
+            if (row.Length != _columnDefs.Length)
+                throw new InvalidDataException($"CSV row has {row.Length} columns but schema defines {_columnDefs.Length} columns");
+
+            for (var i = 0; i < row.Length; i++)
+            {
+                var value = row[i];
+                var type = _columnDefs[i].type;
+                builders[i].Add(ParseValue(value, type));
+            }
+        }
+
+        yield return new TableChunk(this, builders.Select(b => b.ToColumn()).ToArray());
     }
 
-    private Column[] ParseHeader(string header)
+    public IAsyncEnumerable<ITableChunk> GetDataAsync(CancellationToken cancellation = default)
+    {
+        throw new NotSupportedException();
+    }
+
+    private static (string name, ScalarSymbol type)[] ParseHeader(string header)
     {
         var columnDefs = header.Split(',');
-        var columns = new Column[columnDefs.Length];
+        var result = new (string name, ScalarSymbol type)[columnDefs.Length];
 
         for (var i = 0; i < columnDefs.Length; i++)
         {
@@ -66,51 +96,30 @@ public class CsvTableSource : ITableSource
             var name = parts[0].Trim();
             var type = parts[1].Trim().ToLowerInvariant();
 
-            columns[i] = new Column(name, MapKustoType(type));
-        }
-
-        return columns;
-    }
-
-    private object?[] ParseDataRow(string line)
-    {
-        var values = line.Split(',');
-        if (values.Length != _columns.Length)
-            throw new InvalidDataException($"CSV row has {values.Length} columns but schema defines {_columns.Length} columns");
-
-        var result = new object?[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            var value = values[i].Trim();
-            if (string.IsNullOrEmpty(value))
-            {
-                result[i] = null;
-                continue;
-            }
-
-            // Remove quotes if present
-            if (value.StartsWith("\"") && value.EndsWith("\""))
-                value = value[1..^1];
-
-            result[i] = ParseValue(value, _columns[i].Type);
+            result[i] = (name, MapKustoType(type));
         }
 
         return result;
     }
 
-    private static object? ParseValue(string value, Type type)
+    private static object? ParseValue(string value, ScalarSymbol type)
     {
+        if (string.IsNullOrEmpty(value))
+            return null;
+
         try
         {
-            if (type == typeof(string)) return value;
-            if (type == typeof(long)) return long.Parse(value);
-            if (type == typeof(int)) return int.Parse(value);
-            if (type == typeof(double)) return double.Parse(value);
-            if (type == typeof(DateTime)) return DateTime.Parse(value);
-            if (type == typeof(bool)) return bool.Parse(value);
-            if (type == typeof(TimeSpan)) return TimeSpan.Parse(value);
-
-            throw new NotSupportedException($"Unsupported type: {type}");
+            return type switch
+            {
+                { Name: "string" } => value,
+                { Name: "long" } => long.Parse(value),
+                { Name: "int" } => int.Parse(value),
+                { Name: "real" or "double" } => double.Parse(value),
+                { Name: "datetime" } => DateTime.Parse(value),
+                { Name: "bool" } => bool.Parse(value),
+                { Name: "timespan" } => TimeSpan.Parse(value),
+                _ => throw new NotSupportedException($"Unsupported type: {type}")
+            };
         }
         catch (Exception ex)
         {
@@ -118,18 +127,27 @@ public class CsvTableSource : ITableSource
         }
     }
 
-    private static Type MapKustoType(string kustoType)
+    private static ScalarSymbol MapKustoType(string kustoType) => kustoType switch
     {
-        return kustoType switch
-        {
-            "string" => typeof(string),
-            "long" => typeof(long),
-            "int" => typeof(int),
-            "double" => typeof(double),
-            "datetime" => typeof(DateTime),
-            "bool" => typeof(bool),
-            "timespan" => typeof(TimeSpan),
-            _ => throw new NotSupportedException($"Unsupported Kusto type: {kustoType}")
-        };
-    }
+        "string" => ScalarTypes.String,
+        "long" => ScalarTypes.Long,
+        "int" => ScalarTypes.Int,
+        "double" or "real" => ScalarTypes.Real,
+        "datetime" => ScalarTypes.DateTime,
+        "bool" => ScalarTypes.Bool,
+        "timespan" => ScalarTypes.TimeSpan,
+        _ => throw new NotSupportedException($"Unsupported Kusto type: {kustoType}")
+    };
+
+    private static ColumnBuilder CreateBuilder(ScalarSymbol type) => type switch
+    {
+        { Name: "string" } => new ColumnBuilder<string>(ScalarTypes.String),
+        { Name: "long" } => new ColumnBuilder<long?>(ScalarTypes.Long),
+        { Name: "int" } => new ColumnBuilder<int?>(ScalarTypes.Int),
+        { Name: "real" or "double" } => new ColumnBuilder<double?>(ScalarTypes.Real),
+        { Name: "datetime" } => new ColumnBuilder<DateTime?>(ScalarTypes.DateTime),
+        { Name: "bool" } => new ColumnBuilder<bool?>(ScalarTypes.Bool),
+        { Name: "timespan" } => new ColumnBuilder<TimeSpan?>(ScalarTypes.TimeSpan),
+        _ => throw new NotSupportedException($"Unsupported type: {type}")
+    };
 }

@@ -5,19 +5,19 @@ namespace BabyKusto.SampleCsvServer;
 
 public class CsvTablesProvider : ITablesProvider
 {
-    private readonly List<ITableSource> _tables;
+    private readonly Dictionary<string, ITableSource> _tables;
 
     public CsvTablesProvider(IReadOnlyList<string> csvFiles)
     {
-        _tables = new List<ITableSource>();
+        _tables = new Dictionary<string, ITableSource>();
 
         foreach (var file in csvFiles)
         {
             try
             {
                 var table = new CsvTableSource(file);
-                _tables.Add(table);
-                Console.WriteLine($"Loaded CSV table '{table.Name}' with {table.Columns.Count} columns from {file}");
+                _tables[table.Type.Name] = table; // Replace if exists
+                Console.WriteLine($"Loaded CSV table '{table.Type.Name}' with {table.Type.Columns.Count} columns from {file}");
             }
             catch (Exception ex)
             {
@@ -31,5 +31,5 @@ public class CsvTablesProvider : ITablesProvider
         }
     }
 
-    public List<ITableSource> GetTables() => _tables;
+    public List<ITableSource> GetTables() => _tables.Values.ToList();
 }

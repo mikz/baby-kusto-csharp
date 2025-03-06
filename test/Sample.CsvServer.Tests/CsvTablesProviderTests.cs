@@ -1,4 +1,5 @@
 using BabyKusto.Core;
+using Kusto.Language.Symbols;
 using Xunit;
 
 namespace BabyKusto.SampleCsvServer.Tests;
@@ -29,19 +30,19 @@ Bob,25");
         Assert.Equal(2, tables.Count);
 
         // Verify users table
-        var usersTable = tables.First(t => t.Name == "users");
-        Assert.Equal(2, usersTable.Columns.Count);
-        Assert.Collection(usersTable.Columns,
-            c => { Assert.Equal("name", c.Name); Assert.Equal(typeof(string), c.Type); },
-            c => { Assert.Equal("age", c.Name); Assert.Equal(typeof(long), c.Type); }
+        var usersTable = tables.First(t => t.Type.Name == "users");
+        Assert.Equal(2, usersTable.Type.Columns.Count);
+        Assert.Collection(usersTable.Type.Columns,
+            c => { Assert.Equal("name", c.Name); Assert.Equal(ScalarTypes.String.Name, c.Type.Name); },
+            c => { Assert.Equal("age", c.Name); Assert.Equal(ScalarTypes.Long.Name, c.Type.Name); }
         );
 
         // Verify events table
-        var eventsTable = tables.First(t => t.Name == "events");
-        Assert.Equal(2, eventsTable.Columns.Count);
-        Assert.Collection(eventsTable.Columns,
-            c => { Assert.Equal("id", c.Name); Assert.Equal(typeof(long), c.Type); },
-            c => { Assert.Equal("type", c.Name); Assert.Equal(typeof(string), c.Type); }
+        var eventsTable = tables.First(t => t.Type.Name == "events");
+        Assert.Equal(2, eventsTable.Type.Columns.Count);
+        Assert.Collection(eventsTable.Type.Columns,
+            c => { Assert.Equal("id", c.Name); Assert.Equal(ScalarTypes.Long.Name, c.Type.Name); },
+            c => { Assert.Equal("type", c.Name); Assert.Equal(ScalarTypes.String.Name, c.Type.Name); }
         );
     }
 
@@ -73,7 +74,7 @@ Alice");
         var tables = provider.GetTables();
 
         Assert.Single(tables);
-        Assert.Equal("valid", tables[0].Name);
+        Assert.Equal("valid", tables[0].Type.Name);
     }
 
     [Fact]
@@ -101,7 +102,7 @@ value2");
         var tables = provider.GetTables();
 
         Assert.Single(tables);
-        Assert.Equal("data", tables[0].Name);
-        Assert.Equal("col2", tables[0].Columns[0].Name);
+        Assert.Equal("data", tables[0].Type.Name);
+        Assert.Equal("col2", tables[0].Type.Columns[0].Name);
     }
 }

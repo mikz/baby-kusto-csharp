@@ -1,4 +1,5 @@
-using BabyKusto.Core.DataSource;
+using BabyKusto.Core;
+using Kusto.Language.Symbols;
 using Xunit;
 
 namespace BabyKusto.SampleCsvServer.Tests;
@@ -18,20 +19,22 @@ John,30,true,2024-01-01T10:00:00Z");
 
         var table = new CsvTableSource(csvPath);
 
-        Assert.Equal("test_schema", table.Name);
-        Assert.Equal(4, table.Columns.Count);
+        Assert.Equal("test_schema", table.Type.Name);
+        Assert.Equal(4, table.Type.Columns.Count);
 
-        Assert.Equal("name", table.Columns[0].Name);
-        Assert.Equal(typeof(string), table.Columns[0].Type);
+        // Check each column's name and type
+        var cols = table.Type.Columns;
+        Assert.Equal("name", cols[0].Name);
+        Assert.Equal(ScalarTypes.String.Name, cols[0].Type.Name);
 
-        Assert.Equal("age", table.Columns[1].Name);
-        Assert.Equal(typeof(long), table.Columns[1].Type);
+        Assert.Equal("age", cols[1].Name);
+        Assert.Equal(ScalarTypes.Long.Name, cols[1].Type.Name);
 
-        Assert.Equal("active", table.Columns[2].Name);
-        Assert.Equal(typeof(bool), table.Columns[2].Type);
+        Assert.Equal("active", cols[2].Name);
+        Assert.Equal(ScalarTypes.Bool.Name, cols[2].Type.Name);
 
-        Assert.Equal("timestamp", table.Columns[3].Name);
-        Assert.Equal(typeof(DateTime), table.Columns[3].Type);
+        Assert.Equal("timestamp", cols[3].Name);
+        Assert.Equal(ScalarTypes.DateTime.Name, cols[3].Type.Name);
     }
 
     [Fact]
@@ -52,12 +55,14 @@ Bob,456");
         Assert.Equal(2, chunk.RowCount);
         
         // First row
-        Assert.Equal("Alice", chunk.GetValue<string>(0, 0));
-        Assert.Equal(123L, chunk.GetValue<long>(0, 1));
+        var nameCol = (Column<string>)chunk.Columns[0];
+        var valueCol = (Column<long?>)chunk.Columns[1];
+
+        Assert.Equal("Alice", nameCol[0]);
+        Assert.Equal(123L, valueCol[0]);
         
-        // Second row
-        Assert.Equal("Bob", chunk.GetValue<string>(1, 0));
-        Assert.Equal(456L, chunk.GetValue<long>(1, 1));
+        Assert.Equal("Bob", nameCol[1]);
+        Assert.Equal(456L, valueCol[1]);
     }
 
     [Fact]
@@ -119,9 +124,12 @@ John,
         var chunks = table.GetData().ToList();
         var chunk = chunks[0];
 
-        Assert.Equal("John", chunk.GetValue<string>(0, 0));
-        Assert.Null(chunk.GetValue<long?>(0, 1));
-        Assert.Null(chunk.GetValue<string>(1, 0));
-        Assert.Equal(30L, chunk.GetValue<long>(1, 1));
+        var nameCol = (Column<string>)chunk.Columns[0];
+        var valueCol = (Column<long?>)chunk.Columns[1];
+
+        Assert.Equal("John", nameCol[0]);
+        Assert.Null(valueCol[0]);
+        Assert.Null(nameCol[1]);
+        Assert.Equal(30L, valueCol[1]);
     }
 }
