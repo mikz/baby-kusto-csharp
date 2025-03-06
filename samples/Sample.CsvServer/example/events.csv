@@ -1,0 +1,6 @@
+id:long,type:string,source:string,timestamp:datetime,duration:timespan,severity:long
+1,"login","web-app",2024-01-01T10:00:00Z,"00:00:01.500",1
+2,"logout","web-app",2024-01-01T11:30:00Z,"00:00:00.800",0
+3,"error","api",2024-01-01T12:15:00Z,"00:00:05.000",3
+4,"login","mobile-app",2024-01-01T13:00:00Z,"00:00:02.100",1
+5,"payment","web-app",2024-01-01T14:45:00Z,"00:00:03.300",2

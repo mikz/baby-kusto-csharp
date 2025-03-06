@@ -1,0 +1,4 @@
+name:string,age:long,email:string,registered:datetime,is_active:bool
+"John Doe",30,"john@example.com",2024-01-01T10:00:00Z,true
+"Jane Smith",25,"jane@example.com",2024-01-02T15:30:00Z,true
+"Bob Wilson",45,"bob@example.com",2024-01-03T08:15:00Z,false
