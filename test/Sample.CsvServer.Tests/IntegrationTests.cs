@@ -27,7 +27,7 @@ public class CsvServerTestBase(ServerFixture fixture) : IClassFixture<ServerFixt
 
     public Task DisposeAsync()
     {
-        QueryProvider.Dispose();
+        QueryProvider?.Dispose();
         return Task.CompletedTask;
     }
 }
