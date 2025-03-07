@@ -2,100 +2,50 @@
 
 This project contains both unit and integration tests for the CSV Server implementation.
 
-## Test Structure
+## Test Categories
 
 ### Unit Tests
-- CsvTableSourceTests: CSV file parsing and data handling
-- CsvTablesProviderTests: Table management and loading
+- `CsvTableSourceTests`: Tests for CSV file parsing, schema detection, and data handling
+- `CsvTablesProviderTests`: Tests for table management, multiple file loading, and error handling
 
 ### Integration Tests
-Tests that validate end-to-end functionality using real Kusto client.
+- `IntegrationTests`: Basic server configuration and startup tests
+- `KustoClientTests`: Tests using the Kusto client to connect and query data
+- `DataComparisonTests`: Tests that validate data integrity between source CSV and query results
+- `ErrorHandlingTests`: Tests for various error scenarios and response handling
 
-#### Setup
-- WebApplicationFactory running on fixed port
-- Kusto.Data client for queries
-- Reusing CsvTableSource for data validation
+## Test Structure
 
-#### Test Categories
-
-1. Server Tests
-   - Server starts on fixed port
-   - CSV files are loaded correctly
-   - Tables are exposed properly
-
-2. Kusto Client Tests
-   - Connect to local server
-   - Query table data
-   - Validate results against CsvTableSource
-
-3. Data Validation
-   - Compare query results with CsvTableSource data
-   - Verify type handling (string, long, datetime)
-   - Check null value handling
-
-## Dependencies
-
-### NuGet Packages
-- Microsoft.AspNetCore.Mvc.Testing
-- Kusto.Data
-- xunit
-- FluentAssertions
-
-### Test Data
-Using example CSV files from samples/Sample.CsvServer/example/:
-- users.csv
-- events.csv
-
-## Implementation Strategy
-
-1. Integration Test Setup
-   ```csharp
-   public class CsvServerFactory : WebApplicationFactory<Program>
-   {
-     // Configure for fixed port
-     // Load example CSV files
-   }
-   ```
-
-2. Data Comparison
-   ```csharp
-   public class DataComparer
-   {
-     // Compare Kusto query results with CsvTableSource data
-     // Handle type-specific comparisons
-   }
-   ```
-
-3. Test Organization
-   - Group tests by functionality
-   - Share test data loading logic
-   - Reuse existing CsvTableSource for validation
+The integration tests use a custom test fixture (`ServerFixture`) that:
+- Creates a WebApplication instance of Sample.CsvServer
+- Configures it with test settings
+- Runs on a dynamic port
+- Provides a Kusto client connection
 
 ## Running Tests
 
-1. Unit Tests:
-   ```bash
-   dotnet test --filter "Category!=Integration"
-   ```
+```bash
+# Run all tests
+dotnet test
 
-2. Integration Tests:
-   ```bash
-   dotnet test --filter "Category=Integration"
-   ```
+# Run only unit tests
+dotnet test --filter "FullyQualifiedName~CsvTableSource|FullyQualifiedName~CsvTablesProvider"
 
-## Best Practices
+# Run only integration tests
+dotnet test --filter "FullyQualifiedName~Integration|FullyQualifiedName~KustoClient"
+```
 
-1. Test Data Management
-   - Use example CSV files
-   - Load through CsvTableSource
-   - Compare in-memory representations
+## Test Data
 
-2. Connection Handling
-   - Use fixed port for predictability
-   - Clean shutdown after tests
-   - Handle connection errors
+The tests use example CSV files from `samples/Sample.CsvServer/example/`:
+- `users.csv`: Contains user data with various data types
+- `events.csv`: Contains event data with timestamps and numeric fields
 
-3. Data Validation
-   - Type-aware comparisons
-   - Handle null values
-   - Verify schema matching
+For unit tests, test data is generated in-memory during the test run.
+
+## Dependencies
+
+- `Microsoft.AspNetCore.Mvc.Testing`: For hosting the application in tests
+- `Microsoft.Azure.Kusto.Data`: For client connections to the test server
+- `FluentAssertions`: For cleaner assertion syntax
+- `xunit`: Test framework

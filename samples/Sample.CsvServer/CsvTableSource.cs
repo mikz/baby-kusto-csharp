@@ -8,6 +8,15 @@ namespace Sample.CsvServer;
 /// Represents a CSV file as a table source for BabyKusto.
 /// The first line of the CSV file must contain column definitions in format: name:type
 /// Example: id:long,name:string,timestamp:datetime
+/// 
+/// Supported column types:
+/// - string: Text values
+/// - long: 64-bit integers
+/// - int: 32-bit integers
+/// - real/double: Floating point numbers
+/// - bool: Boolean values
+/// - datetime: Date and time values
+/// - timespan: Time interval values
 /// </summary>
 public class CsvTableSource : ITableSource
 {
@@ -15,8 +24,17 @@ public class CsvTableSource : ITableSource
     private readonly (string name, ScalarSymbol type)[] _columnDefs;
     private readonly List<string[]> _rows = new();
 
+    /// <summary>
+    /// Gets the table schema including name and columns
+    /// </summary>
     public TableSymbol Type { get; }
 
+    /// <summary>
+    /// Creates a new CsvTableSource by parsing the specified CSV file
+    /// </summary>
+    /// <param name="filePath">Path to the CSV file</param>
+    /// <exception cref="InvalidDataException">Thrown when the CSV file is invalid or has an incorrect format</exception>
+    /// <exception cref="NotSupportedException">Thrown when an unsupported column type is specified</exception>
     public CsvTableSource(string filePath)
     {
         _filePath = filePath;
@@ -50,6 +68,11 @@ public class CsvTableSource : ITableSource
         }
     }
 
+    /// <summary>
+    /// Gets table data in chunks for processing
+    /// </summary>
+    /// <returns>A sequence of table chunks containing the CSV data</returns>
+    /// <exception cref="InvalidDataException">Thrown when CSV rows don't match the column definition</exception>
     public IEnumerable<ITableChunk> GetData()
     {
         var builders = new List<ColumnBuilder>();
@@ -77,11 +100,20 @@ public class CsvTableSource : ITableSource
         yield return new TableChunk(this, builders.Select(b => b.ToColumn()).ToArray());
     }
 
+    /// <summary>
+    /// Gets table data asynchronously - not implemented for CSV sources
+    /// </summary>
     public IAsyncEnumerable<ITableChunk> GetDataAsync(CancellationToken cancellation = default)
     {
         throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// Parses the header row of a CSV file into column definitions
+    /// </summary>
+    /// <param name="header">The header row text</param>
+    /// <returns>Array of column name and type pairs</returns>
+    /// <exception cref="InvalidDataException">Thrown when header format is invalid</exception>
     private static (string name, ScalarSymbol type)[] ParseHeader(string header)
     {
         var columnDefs = header.Split(',');
@@ -102,6 +134,13 @@ public class CsvTableSource : ITableSource
         return result;
     }
 
+    /// <summary>
+    /// Parses a string value to the appropriate type based on the column type
+    /// </summary>
+    /// <param name="value">String value from CSV</param>
+    /// <param name="type">Target scalar type</param>
+    /// <returns>Parsed value or null if value is empty</returns>
+    /// <exception cref="InvalidCastException">Thrown when value cannot be parsed to the target type</exception>
     private static object? ParseValue(string value, ScalarSymbol type)
     {
         if (string.IsNullOrEmpty(value))
@@ -127,6 +166,12 @@ public class CsvTableSource : ITableSource
         }
     }
 
+    /// <summary>
+    /// Maps Kusto type name to ScalarSymbol
+    /// </summary>
+    /// <param name="kustoType">The Kusto type name from header</param>
+    /// <returns>Corresponding ScalarSymbol</returns>
+    /// <exception cref="NotSupportedException">Thrown when type is not supported</exception>
     private static ScalarSymbol MapKustoType(string kustoType) => kustoType switch
     {
         "string" => ScalarTypes.String,
@@ -139,6 +184,11 @@ public class CsvTableSource : ITableSource
         _ => throw new NotSupportedException($"Unsupported Kusto type: {kustoType}")
     };
 
+    /// <summary>
+    /// Creates appropriate ColumnBuilder for the given type
+    /// </summary>
+    /// <param name="type">Column scalar type</param>
+    /// <returns>Column builder for the specified type</returns>
     private static ColumnBuilder CreateBuilder(ScalarSymbol type) => type switch
     {
         { Name: "string" } => new ColumnBuilder<string>(ScalarTypes.String),
