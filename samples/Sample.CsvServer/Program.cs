@@ -6,7 +6,8 @@ namespace Sample.CsvServer;
 
 public class CsvServerOptions
 {
-    public string CsvGlobPattern { get; set; } = string.Empty;
+    public string Pattern { get; init; } = string.Empty;
+    public string Root { get; init; } = Directory.GetCurrentDirectory();
 }
 
 public partial class Program
@@ -18,7 +19,8 @@ public partial class Program
         builder.WebHost.UseSetting(WebHostDefaults.HttpPortsKey, "5220");
         builder.Configuration.AddCommandLine(args, new Dictionary<string, string>
         {
-            { "--csv", "CsvServer:CsvGlobPattern" }
+            { "--csv", "CsvServer:Pattern" },
+            { "--root", "CsvServer:Root" }
         });
 
         var app = BuildWebApplication(builder);
@@ -57,7 +59,6 @@ public partial class Program
     }
 
 }
-
 public abstract class TablesProviderFactory
 {
     public static ITablesProvider Create(string root, IConfiguration configuration, ILogger logger)
@@ -65,12 +66,12 @@ public abstract class TablesProviderFactory
         var options = new CsvServerOptions();
         configuration.GetSection("CsvServer").Bind(options);
 
-        if (string.IsNullOrEmpty(options.CsvGlobPattern))
+        if (string.IsNullOrEmpty(options.Pattern))
         {
             throw new ArgumentException("Missing CSV pattern");
         }
 
-        var csvFiles = GetCsvFiles(root, options.CsvGlobPattern, logger);
+        var csvFiles = GetCsvFiles(root, options, logger);
         if (csvFiles.Count == 0)
         {
             throw new InvalidOperationException("No CSV files found");
@@ -79,12 +80,12 @@ public abstract class TablesProviderFactory
         return new CsvTablesProvider(csvFiles);
     }
 
-    private static List<string> GetCsvFiles(string root, string pattern, ILogger logger)
+    private static List<string> GetCsvFiles(string root, CsvServerOptions options, ILogger logger)
     {
         var csvFiles = new List<string>();
         var matcher = new Matcher();
-
-        var cwd = Path.GetFullPath(Directory.GetCurrentDirectory());
+        var pattern = options.Pattern;
+        var cwd = options.Root;
 
         matcher.AddInclude(pattern);
 
@@ -95,6 +96,18 @@ public abstract class TablesProviderFactory
         Console.WriteLine($"Searching for csv files in {root} with pattern {pattern}");
         logger.LogInformation($"Searching for csv files in {root} with pattern {pattern}");
         csvFiles.AddRange(matcher.GetResultsInFullPath(root));
+
+        if (pattern.StartsWith("/"))
+        {
+            var components = pattern.Split('*');
+            var dir = components[0];
+            var patt = "*" +string.Join('*', components.Skip(1));
+
+            matcher.AddInclude(patt);
+            Console.WriteLine($"Searching for csv files in {dir} with pattern {patt}");
+            logger.LogInformation($"Searching for csv files in {dir} with pattern {patt}");
+            csvFiles.AddRange(matcher.GetResultsInFullPath(dir));
+        }
 
         return csvFiles;
     }

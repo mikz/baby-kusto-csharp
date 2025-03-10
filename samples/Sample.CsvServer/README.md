@@ -72,7 +72,7 @@ Or using configuration:
 // appsettings.json
 {
   "CsvServer": {
-    "CsvGlobPattern": "./path/to/your/csvfiles/*.csv"
+    "Pattern": "./path/to/your/csvfiles/*.csv"
   }
 }
 ```

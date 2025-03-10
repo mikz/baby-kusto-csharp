@@ -71,7 +71,7 @@ public class IntegrationTests(ServerFixture fixture) : CsvServerTestBase(fixture
         var options = Fixture.App.Services.GetRequiredService<IOptions<CsvServerOptions>>();
         
         // Should load from appsettings.Testing.json
-        options.Value.CsvGlobPattern.Should()
+        options.Value.Pattern.Should()
             .Be("example/*.csv");
     }
 

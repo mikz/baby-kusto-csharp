@@ -49,3 +49,4 @@ For unit tests, test data is generated in-memory during the test run.
 - `Microsoft.Azure.Kusto.Data`: For client connections to the test server
 - `FluentAssertions`: For cleaner assertion syntax
 - `xunit`: Test framework
+- `Testcontainers`: For Docker container testing
