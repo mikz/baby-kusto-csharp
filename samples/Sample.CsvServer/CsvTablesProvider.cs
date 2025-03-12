@@ -18,7 +18,7 @@ public class CsvTablesProvider : ITablesProvider
     /// <exception cref="InvalidOperationException">Thrown when no valid CSV tables could be loaded</exception>
     public CsvTablesProvider(IReadOnlyList<string> csvFiles)
     {
-        _tables = new Dictionary<string, ITableSource>();
+        _tables = [];
 
         foreach (var file in csvFiles)
         {
@@ -33,16 +33,11 @@ public class CsvTablesProvider : ITablesProvider
                 Console.Error.WriteLine($"Failed to load CSV file {file}: {ex.Message}");
             }
         }
-
-        if (_tables.Count == 0)
-        {
-            throw new InvalidOperationException("No valid CSV tables were loaded");
-        }
     }
 
     /// <summary>
     /// Gets all available tables loaded from CSV files
     /// </summary>
     /// <returns>List of table sources representing the loaded CSV files</returns>
-    public List<ITableSource> GetTables() => _tables.Values.ToList();
+    public List<ITableSource> GetTables() => [.. _tables.Values];
 }

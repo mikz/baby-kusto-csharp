@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BabyKusto.Server;
 using BabyKusto.Server.Service;
 using Microsoft.Extensions.FileSystemGlobbing;
@@ -8,6 +9,7 @@ public class CsvServerOptions
 {
     public string Pattern { get; init; } = string.Empty;
     public string Root { get; init; } = Directory.GetCurrentDirectory();
+    public bool Required { get; init; } = false;
 }
 
 public partial class Program
@@ -20,10 +22,18 @@ public partial class Program
         builder.Configuration.AddCommandLine(args, new Dictionary<string, string>
         {
             { "--csv", "CsvServer:Pattern" },
-            { "--root", "CsvServer:Root" }
+            { "--root", "CsvServer:Root" },
+            { "--required", "CsvServer:Required" }
         });
 
         var app = BuildWebApplication(builder);
+
+        try {
+            app.Services.GetRequiredService<ITablesProvider>();
+        } catch (System.InvalidOperationException ex) {
+            Console.WriteLine(ex);
+            Environment.Exit(1);
+        }
 
         app.Run();
     }
@@ -49,8 +59,6 @@ public partial class Program
 
         var app = builder.Build();
 
-        // app.Services.GetRequiredService<ITablesProvider>(); // validate csv server
-
         app.UseRouting();
         app.MapControllers();
         app.UseHttpLogging();
@@ -72,7 +80,7 @@ public abstract class TablesProviderFactory
         }
 
         var csvFiles = GetCsvFiles(root, options, logger);
-        if (csvFiles.Count == 0)
+        if (csvFiles.Count == 0 && options.Required)
         {
             throw new InvalidOperationException("No CSV files found");
         }
